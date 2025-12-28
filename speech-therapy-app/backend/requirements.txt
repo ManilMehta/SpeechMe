@@ -1,0 +1,13 @@
+fastapi>=0.115.2,<1.0
+uvicorn[standard]
+python-multipart>=0.0.18
+supabase
+python-dotenv
+transformers
+torch
+torchaudio
+librosa
+soundfile
+numpy
+openai-whisper
+pydantic
