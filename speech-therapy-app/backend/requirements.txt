@@ -11,3 +11,4 @@ soundfile
 numpy
 openai-whisper
 pydantic
+together
