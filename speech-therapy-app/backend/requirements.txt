@@ -12,3 +12,6 @@ numpy
 openai-whisper
 pydantic
 together
+pyjwt
+cryptography
+requests

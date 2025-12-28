@@ -1,8 +1,11 @@
 'use client';
 
 import { useState, useRef } from 'react';
+import { useAuth } from '../context/AuthContext';
+import { supabase } from '@/lib/supabase';
 
 export default function AudioRecorder() {
+  const { user } = useAuth(); 
   const [isRecording, setIsRecording] = useState(false);
   const [audioURL, setAudioURL] = useState<string>('');
   const [isAnalyzing, setIsAnalyzing] = useState(false);
@@ -61,6 +64,11 @@ export default function AudioRecorder() {
       return;
     }
 
+    if (!user) {
+      alert('You must be logged in!');
+      return;
+    }
+
     setIsAnalyzing(true);
     setFeedback('');
 
@@ -69,14 +77,34 @@ export default function AudioRecorder() {
       const audioBlob = await response.blob();
 
       const formData = new FormData();
-      formData.append('audio', audioBlob, 'recording.wav');
+      formData.append('audio', audioBlob, 'recording.webm');
+
+      // Get the auth token from Supabase
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      console.log('Session:', session ? 'EXISTS' : 'NULL');
+      console.log('Token preview:', session?.access_token?.substring(0, 30));
+      
+      if (!session) {
+        alert('Session expired. Please log in again.');
+        return;
+      }
+
+      console.log('Sending request with auth header...');
 
       const apiResponse = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/analyze-speech`, {
         method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${session.access_token}`,
+        },
         body: formData,
       });
 
+      console.log('Response status:', apiResponse.status);
+
       if (!apiResponse.ok) {
+        const errorText = await apiResponse.text();
+        console.error('Error response:', errorText);
         throw new Error('Analysis failed');
       }
 
@@ -91,6 +119,7 @@ export default function AudioRecorder() {
 - Words spoken: ${result.word_count}
 - Speaking rate: ${result.speaking_rate_wpm?.toFixed(1)} words per minute
 - Duration: ${result.audio_features.duration_seconds.toFixed(1)} seconds
+- Overall Score: ${result.score}/100
 
 🤖 AI SPEECH THERAPIST FEEDBACK:
 
