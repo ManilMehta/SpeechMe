@@ -17,7 +17,11 @@ app = FastAPI(title="Speech Therapy API")
 # Enable CORS for frontend
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000", "https://*.vercel.app"],
+    allow_origins=[
+        "http://localhost:3000",
+        "https://*.vercel.app",
+        "https://your-app-name.vercel.app",  # We'll update this after deploying frontend
+    ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

@@ -4,6 +4,7 @@ import AudioRecorder from './components/AudioRecorder';
 import { useAuth } from './context/AuthContext';
 import { useRouter } from 'next/navigation';
 import { useEffect } from 'react';
+import Link from 'next/link';
 
 export default function Home() {
   const { user, loading, signOut } = useAuth();
@@ -27,25 +28,35 @@ export default function Home() {
   }
 
   if (!user) {
-    return null; // Will redirect to login
+    return null;
   }
 
   return (
     <main className="min-h-screen bg-gradient-to-b from-blue-50 to-white py-12 px-4">
-      {/* Header with user info and logout */}
-      <div className="max-w-2xl mx-auto mb-6 flex justify-between items-center">
-        <div>
-          <p className="text-gray-600">Welcome back,</p>
-          <p className="text-xl font-semibold text-gray-800">
-            {user.user_metadata?.full_name || user.email}
-          </p>
+      {/* Header with user info and navigation */}
+      <div className="max-w-2xl mx-auto mb-6">
+        <div className="flex justify-between items-center mb-2">
+          <div>
+            <p className="text-gray-600">Welcome back,</p>
+            <p className="text-xl font-semibold text-gray-800">
+              {user.user_metadata?.full_name || user.email}
+            </p>
+          </div>
+          <div className="flex gap-3">
+            <Link
+              href="/dashboard"
+              className="bg-gray-200 hover:bg-gray-300 text-gray-700 font-semibold py-2 px-4 rounded-lg transition-colors duration-200"
+            >
+              Dashboard
+            </Link>
+            <button
+              onClick={signOut}
+              className="bg-gray-200 hover:bg-gray-300 text-gray-700 font-semibold py-2 px-4 rounded-lg transition-colors duration-200"
+            >
+              Sign Out
+            </button>
+          </div>
         </div>
-        <button
-          onClick={signOut}
-          className="bg-gray-200 hover:bg-gray-300 text-gray-700 font-semibold py-2 px-4 rounded-lg transition-colors duration-200"
-        >
-          Sign Out
-        </button>
       </div>
 
       <AudioRecorder />
