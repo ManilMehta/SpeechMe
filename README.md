@@ -6,13 +6,12 @@ An intelligent speech therapy practice platform that uses AI to provide real-tim
 ## Features
 
 ### Core Functionality
-- ** Audio Recording**: Browser-based audio recording with real-time feedback
-- ** AI Speech Analysis**: Powered by OpenAI Whisper for accurate transcription
-- ** Personalized Feedback**: Meta Llama 3.1 provides detailed, actionable speech therapy advice
-- ** Progress Tracking**: Comprehensive dashboard showing improvement over time
-- ** Practice Scripts**: Curated scripts across 3 difficulty levels and multiple categories
-- ** User Authentication**: Secure authentication via Supabase Auth
-- ** Cloud Storage**: Audio recordings stored securely in Supabase Storage
+- **AI Speech Analysis**: Powered by OpenAI Whisper for accurate transcription
+- **Personalized Feedback**: Meta Llama 3.1 provides detailed, actionable speech therapy advice
+- **Progress Tracking**: Comprehensive dashboard showing improvement over time
+- **Practice Scripts**: Curated scripts across 3 difficulty levels and multiple categories
+- **User Authentication**: Secure authentication via Supabase Auth
+- **Cloud Storage**: Audio recordings stored securely in Supabase Storage
 
 ### Speech Analysis Metrics
 - **Transcription Accuracy**: Word-for-word transcription of your speech
@@ -42,7 +41,7 @@ An intelligent speech therapy practice platform that uses AI to provide real-tim
 - **Session Details**: Review transcriptions, audio, and AI feedback for any session
 - **Audio Playback**: Listen to your recordings anytime
 
-## 🏗️ Tech Stack
+## Tech Stack
 
 ### Frontend
 - **Framework**: Next.js 14 (App Router)
