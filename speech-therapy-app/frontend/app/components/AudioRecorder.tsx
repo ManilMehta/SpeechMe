@@ -1,50 +1,77 @@
 'use client';
 
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { supabase } from '@/lib/supabase';
 
+interface PracticeScript {
+  text: string;
+  difficulty: string;
+  category: string;
+  word_count: number;
+}
+
 export default function AudioRecorder() {
-  const { user } = useAuth(); 
+  const { user } = useAuth();
   const [isRecording, setIsRecording] = useState(false);
   const [audioURL, setAudioURL] = useState<string>('');
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [feedback, setFeedback] = useState<string>('');
   
+  // Script state
+  const [currentScript, setCurrentScript] = useState<PracticeScript | null>(null);
+  const [difficulty, setDifficulty] = useState<string>('beginner');
+  const [loadingScript, setLoadingScript] = useState(false);
+  
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
 
+  // Load initial script
+  useEffect(() => {
+    loadNewScript();
+  }, []);
+
+  const loadNewScript = async () => {
+    setLoadingScript(true);
+    try {
+      const response = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL}/practice-script?difficulty=${difficulty}`
+      );
+      
+      if (response.ok) {
+        const data = await response.json();
+        setCurrentScript(data.script);
+      }
+    } catch (error) {
+      console.error('Error loading script:', error);
+    } finally {
+      setLoadingScript(false);
+    }
+  };
+
   const startRecording = async () => {
     try {
-      // Request microphone permission
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      
-      // Create MediaRecorder instance
       const mediaRecorder = new MediaRecorder(stream);
       mediaRecorderRef.current = mediaRecorder;
       audioChunksRef.current = [];
 
-      // Collect audio data
       mediaRecorder.ondataavailable = (event) => {
         if (event.data.size > 0) {
           audioChunksRef.current.push(event.data);
         }
       };
 
-      // When recording stops, create audio URL
       mediaRecorder.onstop = () => {
-        const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/wav' });
+        const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
         const url = URL.createObjectURL(audioBlob);
         setAudioURL(url);
-        
-        // Stop all tracks to release microphone
         stream.getTracks().forEach(track => track.stop());
       };
 
-      // Start recording
       mediaRecorder.start();
       setIsRecording(true);
-      setFeedback(''); // Clear previous feedback
+      setFeedback('');
     } catch (error) {
       console.error('Error accessing microphone:', error);
       alert('Could not access microphone. Please grant permission.');
@@ -79,18 +106,12 @@ export default function AudioRecorder() {
       const formData = new FormData();
       formData.append('audio', audioBlob, 'recording.webm');
 
-      // Get the auth token from Supabase
       const { data: { session } } = await supabase.auth.getSession();
-      
-      console.log('Session:', session ? 'EXISTS' : 'NULL');
-      console.log('Token preview:', session?.access_token?.substring(0, 30));
       
       if (!session) {
         alert('Session expired. Please log in again.');
         return;
       }
-
-      console.log('Sending request with auth header...');
 
       const apiResponse = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/analyze-speech`, {
         method: 'POST',
@@ -100,17 +121,12 @@ export default function AudioRecorder() {
         body: formData,
       });
 
-      console.log('Response status:', apiResponse.status);
-
       if (!apiResponse.ok) {
-        const errorText = await apiResponse.text();
-        console.error('Error response:', errorText);
         throw new Error('Analysis failed');
       }
 
       const result = await apiResponse.json();
       
-      // Format the feedback with AI insights
       const formattedFeedback = `
 📝 TRANSCRIPTION:
 "${result.transcription}"
@@ -140,25 +156,74 @@ ${result.ai_feedback}
     setAudioURL('');
     setFeedback('');
     audioChunksRef.current = [];
+    loadNewScript(); // Load a new script for next practice
   };
 
   return (
     <div className="w-full max-w-2xl mx-auto p-6 space-y-6">
-      {/* Header */}
       <div className="text-center">
         <h1 className="text-3xl font-bold text-gray-800 mb-2">
           Speech Therapy Practice
         </h1>
         <p className="text-gray-600">
-          Record your speech and receive personalized feedback
+          Read the script below and record yourself
         </p>
       </div>
+
+      {/* Difficulty Selector */}
+      <div className="bg-white rounded-lg shadow-md p-4">
+        <label className="block text-sm font-medium text-gray-700 mb-2">
+          Difficulty Level
+        </label>
+        <div className="flex gap-2">
+          {['beginner', 'intermediate', 'advanced'].map((level) => (
+            <button
+              key={level}
+              onClick={() => {
+                setDifficulty(level);
+                setCurrentScript(null);
+                setTimeout(() => loadNewScript(), 100);
+              }}
+              className={`flex-1 py-2 px-4 rounded-lg font-semibold transition-colors ${
+                difficulty === level
+                  ? 'bg-blue-500 text-white'
+                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+              }`}
+            >
+              {level.charAt(0).toUpperCase() + level.slice(1)}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Practice Script Display */}
+      {currentScript && (
+        <div className="bg-blue-50 rounded-lg shadow-md p-6">
+          <div className="flex justify-between items-start mb-3">
+            <div>
+              <h2 className="text-lg font-bold text-gray-800">Practice Script</h2>
+              <p className="text-sm text-gray-600">
+                {currentScript.category} • {currentScript.word_count} words
+              </p>
+            </div>
+            <button
+              onClick={loadNewScript}
+              disabled={loadingScript}
+              className="text-blue-500 hover:text-blue-600 font-semibold text-sm"
+            >
+              {loadingScript ? '...' : 'New Script'}
+            </button>
+          </div>
+          <p className="text-lg text-gray-800 leading-relaxed">
+            {currentScript.text}
+          </p>
+        </div>
+      )}
 
       {/* Recording Controls */}
       <div className="bg-white rounded-lg shadow-md p-8">
         <div className="flex flex-col items-center space-y-4">
           
-          {/* Recording Button */}
           {!isRecording ? (
             <button
               onClick={startRecording}
@@ -179,13 +244,11 @@ ${result.ai_feedback}
             </button>
           )}
 
-          {/* Recording Status */}
           {isRecording && (
             <p className="text-red-500 font-medium">Recording in progress...</p>
           )}
         </div>
 
-        {/* Audio Player */}
         {audioURL && !isRecording && (
           <div className="mt-6 space-y-4">
             <div className="flex justify-center">
@@ -194,7 +257,6 @@ ${result.ai_feedback}
               </audio>
             </div>
             
-            {/* Action Buttons */}
             <div className="flex justify-center space-x-4">
               <button
                 onClick={analyzeAudio}
@@ -208,7 +270,7 @@ ${result.ai_feedback}
                 onClick={clearRecording}
                 className="bg-gray-500 hover:bg-gray-600 text-white font-semibold py-2 px-6 rounded-lg transition-colors duration-200"
               >
-                Record Again
+                Try New Script
               </button>
             </div>
           </div>
@@ -226,18 +288,6 @@ ${result.ai_feedback}
           </div>
         </div>
       )}
-
-      {/* Instructions */}
-      <div className="bg-gray-50 rounded-lg p-6">
-        <h3 className="font-semibold text-gray-800 mb-2">How to use:</h3>
-        <ol className="list-decimal list-inside space-y-1 text-gray-600">
-          <li>Click "Start Recording" and speak clearly into your microphone</li>
-          <li>Click "Stop Recording" when you're finished</li>
-          <li>Listen to your recording to verify it captured correctly</li>
-          <li>Click "Analyze Speech" to receive personalized feedback</li>
-          <li>Practice the suggestions and record again to track improvement</li>
-        </ol>
-      </div>
     </div>
   );
 }

@@ -9,6 +9,7 @@ from audio_processor import AudioProcessor
 from speech_therapist import SpeechTherapist
 from database import DatabaseManager
 from auth import verify_token
+from practice_scripts import get_random_script, get_all_scripts, get_categories
 
 load_dotenv()
 
@@ -20,7 +21,7 @@ app.add_middleware(
     allow_origins=[
         "http://localhost:3000",
         "https://*.vercel.app",
-        "https://your-app-name.vercel.app",  # We'll update this after deploying frontend
+        "https://speech-therapy-frontend.vercel.app",  # Update with your Vercel URL
     ],
     allow_credentials=True,
     allow_methods=["*"],
@@ -58,10 +59,56 @@ def read_root():
 def health_check():
     return {"status": "healthy"}
 
+@app.get("/practice-script")
+def get_practice_script(
+    difficulty: str = "beginner",
+    category: str = None
+):
+    """
+    Get a random practice script
+    
+    Query params:
+        difficulty: "beginner", "intermediate", or "advanced"
+        category: Specific focus area (optional)
+    """
+    try:
+        script = get_random_script(difficulty, category)
+        return {
+            "status": "success",
+            "script": script
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/practice-scripts/all")
+def get_all_practice_scripts():
+    """Get all available practice scripts"""
+    try:
+        scripts = get_all_scripts()
+        return {
+            "status": "success",
+            "scripts": scripts
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/practice-scripts/categories")
+def get_script_categories(difficulty: str = "beginner"):
+    """Get available categories for a difficulty level"""
+    try:
+        categories = get_categories(difficulty)
+        return {
+            "status": "success",
+            "difficulty": difficulty,
+            "categories": categories
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
 @app.post("/analyze-speech")
 async def analyze_speech(
     audio: UploadFile = File(...),
-    user_id: str = Depends(verify_token)  # Now extracts real user ID from token!
+    user_id: str = Depends(verify_token)
 ):
     """
     Endpoint to receive audio file, analyze it, generate AI feedback, and save to database
